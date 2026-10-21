@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NetPulse Simulator — Tata Elxsi Teliport S4</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      padding: 20px 16px;
+      gap: 14px;
+    }
+
+    /* === HEADER === */
+    .header { text-align: center; max-width: 860px; }
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(6,182,212,0.12);
+      border: 1px solid rgba(6,182,212,0.35);
+      color: #22d3ee;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 12px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .header h1 {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #fff;
+    }
+    .header h1 span { color: #22d3ee; }
+    .header p {
+      font-size: 12.5px;
+      color: #8b949e;
+      margin-top: 3px;
+    }
+
+    /* === CONTROLS & TIMELINE ROW === */
+    .controls-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      width: 100%;
+      max-width: 880px;
+    }
+    .timeline {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .time-btn {
+      background: #161b22;
+      border: 1.5px solid #30363d;
+      color: #8b949e;
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.18s;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .time-btn .sec {
+      background: #21262d;
+      color: #58a6ff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+    .time-btn:hover { border-color: #58a6ff; color: #e6edf3; }
+    .time-btn.active {
+      background: rgba(6,182,212,0.12);
+      border-color: #22d3ee;
+      color: #22d3ee;
+    }
+    .time-btn.active .sec {
+      background: #0891b2;
+      color: #fff;
+    }
+
+    /* Action buttons: Auto demo & Intent Lease */
+    .action-group {
+      display: flex;
+      gap: 6px;
+    }
+    .auto-btn {
+      background: #238636;
+      border: 1.5px solid #2ea043;
+      color: #ffffff;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .auto-btn:hover { background: #2ea043; }
+    .auto-btn.running {
+      background: #9e6a03;
+      border-color: #d29922;
+      color: #fff;
+    }
+
+    .intent-btn {
+      background: #1f242c;
+      border: 1.5px solid #388bfd;
+      color: #58a6ff;
+      font-size: 11.5px;
+      font-weight: 700;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .intent-btn.active {
+      background: #1f3a5f;
+      border-color: #58a6ff;
+      color: #fff;
+      box-shadow: 0 0 10px rgba(56,139,253,0.35);
+    }
+
+    /* Progress bar for auto-demo */
+    .auto-timer-bar {
+      width: 100%;
+      max-width: 880px;
+      height: 3px;
+      background: #21262d;
+      border-radius: 999px;
+      overflow: hidden;
+      display: none;
+    }
+    .auto-timer-fill {
+      height: 100%;
+      width: 0%;
+      background: #22d3ee;
+      transition: width 0.1s linear;
+    }
+
+    /* === MAIN COMPARISON === */
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      width: 100%;
+      max-width: 880px;
+    }
+
+    .panel {
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border: 1.5px solid;
+    }
+    .panel-bad {
+      background: #180d10;
+      border-color: rgba(248, 81, 73, 0.35);
+    }
+    .panel-good {
+      background: #0d1e16;
+      border-color: rgba(35, 197, 94, 0.35);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .panel-title {
+      font-size: 11.5px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .panel-bad .panel-title { color: #f85149; }
+    .panel-good .panel-title { color: #23c55e; }
+
+    .panel-subtag {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .panel-bad .panel-subtag { background: rgba(248,81,73,0.15); color: #ff7b72; }
+    .panel-good .panel-subtag { background: rgba(35,197,94,0.15); color: #3fb950; }
+
+    /* === LATENCY DISPLAY === */
+    .latency-display {
+      background: #0d1117;
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid #21262d;
+    }
+    .latency-label {
+      font-size: 11.5px;
+      color: #8b949e;
+      font-weight: 600;
+    }
+    .latency-label small {
+      display: block;
+      font-size: 10.5px;
+      color: #6e7681;
+      font-weight: 400;
+      margin-top: 1px;
+    }
+    .latency-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .latency-bad { color: #f85149; }
+    .latency-good { color: #23c55e; }
+    .latency-tag {
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 3px;
+      text-align: right;
+    }
+    .tag-bad { color: #f85149; }
+    .tag-good { color: #23c55e; }
+
+    /* === FLOW BARS MATCHING SLIDE === */
+    .pipe-section { display: flex; flex-direction: column; gap: 7px; }
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+    }
+    .flow-name {
+      width: 72px;
+      color: #c9d1d9;
+      font-weight: 600;
+      flex-shrink: 0;
+      font-size: 11px;
+    }
+    .flow-track {
+      flex: 1;
+      height: 12px;
+      background: #161b22;
+      border-radius: 999px;
+      overflow: hidden;
+      border: 1px solid #21262d;
+    }
+    .flow-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+      position: relative;
+    }
+    .flow-fill::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.2) 50%, transparent 100%);
+      animation: shimmer 1.8s infinite;
+    }
+    @keyframes shimmer { to { left: 100%; } }
+
+    .flow-status {
+      width: 82px;
+      text-align: right;
+      font-size: 10.5px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .status-bad-txt { color: #f85149; }
+    .status-good-txt { color: #3fb950; }
+
+    /* === 5 STEPS CARD (SEE, UNDERSTAND, DECIDE, SHAPE, PROVE) === */
+    .steps-card {
+      background: #12281e;
+      border: 1px solid rgba(35, 197, 94, 0.3);
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 11px;
+      color: #d1fae5;
+    }
+    .steps-header {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #34d399;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 5px;
+    }
+    .step-line {
+      display: flex;
+      gap: 5px;
+      margin-top: 2.5px;
+      line-height: 1.3;
+    }
+    .step-num {
+      font-weight: 800;
+      color: #6ee7b7;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      flex-shrink: 0;
+      width: 88px;
+    }
+    .step-desc {
+      color: #ecfdf5;
+      font-weight: 400;
+    }
+
+    /* === NARRATOR BAR === */
+    .narrator {
+      width: 100%;
+      max-width: 880px;
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 9px 14px;
+      font-size: 11.5px;
+      color: #8b949e;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .narrator strong { color: #22d3ee; }
+    .narrator-badge {
+      background: #21262d;
+      border: 1px solid #30363d;
+      color: #58a6ff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER (MATCHING SLIDE) -->
+  <div class="header">
+    <div class="header-badge">
+      <span>TATA ELXSI · TELIPORT S4 · PROBLEM STATEMENT 03</span>
+    </div>
+    <h1>Fast internet, frozen calls. <span>NetPulse fixes that.</span></h1>
+    <p>We manage the experience, not just the bandwidth. Click the 60-Second Proof Run below.</p>
+  </div>
+
+  <!-- 60-SECOND PROOF RUN TIMELINE & CONTROLS -->
+  <div class="controls-row">
+    <div class="timeline">
+      <button class="time-btn active" id="b0" onclick="selectStep(0)">
+        <span class="sec">0 s</span> Call & Game Start
+      </button>
+      <button class="time-btn" id="b15" onclick="selectStep(15)">
+        <span class="sec">15 s</span> 20 GB ISO Starts
+      </button>
+      <button class="time-btn" id="b30" onclick="selectStep(30)">
+        <span class="sec">30 s</span> Speed 100→20M
+      </button>
+      <button class="time-btn" id="b45" onclick="selectStep(45)">
+        <span class="sec">45 s</span> 3 TVs Join
+      </button>
+      <button class="time-btn" id="b60" onclick="selectStep(60)">
+        <span class="sec">60 s</span> Proof Report
+      </button>
+    </div>
+
+    <div class="action-group">
+      <button class="intent-btn" id="btnIntent" onclick="toggleIntentLease()">
+        <span>⚡</span> <span id="intentText">Intent Lease (Off)</span>
+      </button>
+      <button class="auto-btn" id="btnAuto" onclick="toggleAutoDemo()">
+        <span id="autoIcon">▶</span> <span id="autoText">Auto Demo</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- AUTO-DEMO PROGRESS BAR -->
+  <div class="auto-timer-bar" id="timerBar">
+    <div class="auto-timer-fill" id="timerFill"></div>
+  </div>
+
+  <!-- COMPARISON PANELS (TODAY VS WITH NETPULSE) -->
+  <div class="comparison">
+
+    <!-- LEFT: TODAY (ONE SHARED PIPE, NO RULES) -->
+    <div class="panel panel-bad">
+      <div class="panel-header">
+        <div class="panel-title">❌ TODAY: ONE SHARED PIPE, NO RULES</div>
+        <div class="panel-subtag">Standard Router</div>
+      </div>
+
+      <div class="latency-display">
+        <div>
+          <div class="latency-label">Interactive Latency
+            <small>Unmanaged bufferbloat queue</small>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="latency-value latency-bad" id="val-bad">12 ms</div>
+          <div class="latency-tag tag-bad" id="tag-bad">Normal</div>
+        </div>
+      </div>
+
+      <!-- EXACT 4 FLOWS MATCHING SLIDE -->
+      <div class="pipe-section">
+        <div style="font-size:10px; color:#8b949e; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Traffic Flows & User Experience</div>
+
+        <div class="flow-row">
+          <div class="flow-name">📞 Video Call</div>
+          <div class="flow-track"><div class="flow-fill" id="bad-call" style="width:25%;background:#f85149;"></div></div>
+          <div class="flow-status status-bad-txt" id="bad-call-stat">Smooth</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">🎮 Gaming</div>
+          <div class="flow-track"><div class="flow-fill" id="bad-game" style="width:25%;background:#f0883e;"></div></div>
+          <div class="flow-status status-bad-txt" id="bad-game-stat">Smooth</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">📺 3 Smart TVs</div>
+          <div class="flow-track"><div class="flow-fill" id="bad-tv" style="width:0%;background:#bc8cff;"></div></div>
+          <div class="flow-status status-bad-txt" id="bad-tv-stat">Idle</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">⬇ Download</div>
+          <div class="flow-track"><div class="flow-fill" id="bad-dl" style="width:0%;background:#388bfd;"></div></div>
+          <div class="flow-status status-bad-txt" id="bad-dl-stat">Idle</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(248,81,73,0.1); border:1px solid rgba(248,81,73,0.25); border-radius:8px; padding:8px 10px; font-size:11px; line-height:1.4; color:#ff7b72;">
+        <strong>Root Cause:</strong> <span id="bad-desc" style="color:#e6edf3;">No rules. First-In-First-Out queue fills with bulk packets, delaying time-critical packets.</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: WITH NETPULSE (EVERY FLOW GETS AN EXPERIENCE BUDGET) -->
+    <div class="panel panel-good">
+      <div class="panel-header">
+        <div class="panel-title">✓ WITH NETPULSE: EXPERIENCE BUDGETS</div>
+        <div class="panel-subtag">Smart Linux Engine</div>
+      </div>
+
+      <div class="latency-display">
+        <div>
+          <div class="latency-label">Interactive Latency
+            <small>Protected latency tins</small>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div class="latency-value latency-good" id="val-good">5.4 ms</div>
+          <div class="latency-tag tag-good" id="tag-good">✓ Smooth</div>
+        </div>
+      </div>
+
+      <!-- EXACT 4 FLOWS MATCHING SLIDE -->
+      <div class="pipe-section">
+        <div style="font-size:10px; color:#8b949e; font-weight:700; text-transform:uppercase; letter-spacing:0.06em;">Traffic Flows & User Experience</div>
+
+        <div class="flow-row">
+          <div class="flow-name">📞 Video Call</div>
+          <div class="flow-track"><div class="flow-fill" id="good-call" style="width:30%;background:#23c55e;"></div></div>
+          <div class="flow-status status-good-txt" id="good-call-stat">Smooth</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">🎮 Gaming</div>
+          <div class="flow-track"><div class="flow-fill" id="good-game" style="width:25%;background:#58d68d;"></div></div>
+          <div class="flow-status status-good-txt" id="good-game-stat">Smooth</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">📺 3 Smart TVs</div>
+          <div class="flow-track"><div class="flow-fill" id="good-tv" style="width:0%;background:#bc8cff;"></div></div>
+          <div class="flow-status status-good-txt" id="good-tv-stat">Idle</div>
+        </div>
+
+        <div class="flow-row">
+          <div class="flow-name">⬇ Download</div>
+          <div class="flow-track"><div class="flow-fill" id="good-dl" style="width:0%;background:#388bfd;"></div></div>
+          <div class="flow-status status-good-txt" id="good-dl-stat">Idle</div>
+        </div>
+      </div>
+
+      <!-- THE 5 STEPS MATCHING SLIDE: 1 SEE, 2 UNDERSTAND, 3 DECIDE, 4 SHAPE, 5 PROVE -->
+      <div class="steps-card">
+        <div class="steps-header">
+          <span>The 5-Step Engine (Slide Alignment)</span>
+          <span style="font-family:'JetBrains Mono', monospace; font-size:9.5px; color:#a7f3d0;" id="conf-score">Conf: 99.1%</span>
+        </div>
+        <div class="step-line">
+          <span class="step-num">1. SEE:</span>
+          <span class="step-desc" id="step-see">eBPF flow sketches track timing & link rate (Zero payload read).</span>
+        </div>
+        <div class="step-line">
+          <span class="step-num">2. UNDERSTAND:</span>
+          <span class="step-desc" id="step-understand">TinyML classifies Call, Game, Stream, Bulk with confidence score.</span>
+        </div>
+        <div class="step-line">
+          <span class="step-num">3. DECIDE:</span>
+          <span class="step-desc" id="step-decide">Policy governor assigns Experience Budget per flow.</span>
+        </div>
+        <div class="step-line">
+          <span class="step-num">4. SHAPE:</span>
+          <span class="step-desc" id="step-shape">Linux tc · CAKE enforces diffserv tins for IPv4 & IPv6.</span>
+        </div>
+        <div class="step-line">
+          <span class="step-num">5. PROVE:</span>
+          <span class="step-desc" id="step-prove">Verifier audits queue delay; rolls back if outcome doesn't beat rules.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NARRATOR / STORY BAR -->
+  <div class="narrator" id="narrator">
+    <span class="narrator-badge" id="stepBadge">0 s</span>
+    <span id="stepNarrative">Call and game start; budgets are set. Everything runs smoothly on clean line.</span>
+  </div>
+
+  <script>
+    // EXACT 60-SECOND PROOF RUN FROM SLIDE
+    const proofRun = {
+      0: {
+        sec: "0 s",
+        title: "Call and game start; budgets are set.",
+        desc: "Without heavy background traffic, both standard router and NetPulse keep latency low. Baseline established.",
+        bad:  { latency: 12.0, tag: "✓ Normal", callW: 25, callS: "Smooth", gameW: 25, gameS: "Smooth", tvW: 0, tvS: "Idle", dlW: 0, dlS: "Idle", msg: "Both call and game have plenty of headroom on 100 Mbps clean link." },
+        good: { latency: 5.4,  tag: "✓ Smooth", callW: 30, callS: "Smooth", gameW: 25, gameS: "Smooth", tvW: 0, tvS: "Idle", dlW: 0, dlS: "Idle", conf: "Conf: 99.2%",
+                see: "eBPF flow sketches observe bidirectional RTP and UDP tick intervals without decrypting.",
+                understand: "TinyML classifies flow: Call (99.2% conf), Game (98.9% conf).",
+                decide: "Allocates initial Experience Budgets: 5ms target delay for both flows.",
+                shape: "tc qdisc cake diffserv3: maps RTP to Voice tin, UDP ticks to Low-Delay tin.",
+                prove: "Verifier measures 0.2ms jitter, 0% packet loss. Baseline validated." }
+      },
+      15: {
+        sec: "15 s",
+        title: "A 20 GB download is held to a fair share.",
+        desc: "A massive ISO download initiates. Today's router lets download flood the queue. NetPulse isolates the call in a protected lane while download keeps moving.",
+        bad:  { latency: 218.0, tag: "⚠ Freezes", callW: 4, callS: "Freezes", gameW: 4, gameS: "Lags", tvW: 0, tvS: "Idle", dlW: 92, dlS: "Hogs bandwidth", msg: "Download monopolizes the queue (Bufferbloat). Call packets wait behind large TCP bursts." },
+        good: { latency: 6.2,   tag: "✓ Smooth", callW: 20, callS: "Smooth", gameW: 15, gameS: "Smooth", tvW: 0, tvS: "Idle", dlW: 65, dlS: "Keeps moving", conf: "Conf: 98.8%",
+                see: "eBPF senses sudden bulk burst pattern & 1500-byte MSS windows within 2 packets.",
+                understand: "Classified as Bulk Download (98.8% confidence).",
+                decide: "Fairness Floor applied: ISO gets 65 Mbps progress budget; Call & Game reserved 35 Mbps.",
+                shape: "CAKE sends bulk packets to Bulk tin; Call remains in zero-delay Voice tin.",
+                prove: "Call latency held at 6.2ms (97% reduction vs baseline). ISO makes steady progress without starvation." }
+      },
+      30: {
+        sec: "30 s",
+        title: "Link drops from 100 to 20 Mbps; shaper adapts.",
+        desc: "WAN speed suddenly drops from 100 to 20 Mbps. Standard router still sends at 100 Mbps causing total collapse. NetPulse recalculates in < 300ms.",
+        bad:  { latency: 340.0, tag: "⚠ Drops", callW: 2, callS: "Freezes", gameW: 2, gameS: "Lags", tvW: 0, tvS: "Idle", dlW: 96, dlS: "Hogs bandwidth", msg: "Router attempts to push 100M into a 20M pipe. Huge ISP bottleneck bufferbloat; calls disconnect." },
+        good: { latency: 5.8,   tag: "✓ Adapted", callW: 30, callS: "Smooth", gameW: 25, gameS: "Smooth", tvW: 0, tvS: "Idle", dlW: 45, dlS: "Keeps moving", conf: "Conf: 99.4%",
+                see: "Passive Kalman filter observes TCP ACK inter-arrival dispersion; detects 20 Mbps drop in 280ms.",
+                understand: "Detects link capacity collapse without active pings flooding the pipe.",
+                decide: "Shrinks shaper ceiling from 100M to 19M. Recalculates Experience Budgets.",
+                shape: "Netlink atomic update to CAKE bandwidth parameter. Zero packets dropped.",
+                prove: "Zero call drop. Latency stays flat at 5.8ms despite 80% link bandwidth loss." }
+      },
+      45: {
+        sec: "45 s",
+        title: "Three TVs join and share bandwidth fairly.",
+        desc: "Three 4K smart TVs start streaming simultaneously. NetPulse balances DASH/HLS chunk bursts fairly while keeping Call and Gaming latency pristine.",
+        bad:  { latency: 165.0, tag: "⚠ Buffers", callW: 4, callS: "Freezes", gameW: 4, gameS: "Lags", tvW: 82, tvS: "Buffers", dlW: 10, dlS: "Hogs bandwidth", msg: "Four competing video streams fight for packets. Jitter spikes; video buffers; call drops audio." },
+        good: { latency: 7.1,   tag: "✓ Smooth", callW: 20, callS: "Smooth", gameW: 18, gameS: "Smooth", tvW: 42, tvS: "Smooth", dlW: 20, dlS: "Keeps moving", conf: "Conf: 98.5%",
+                see: "eBPF tracks cyclic chunk requests of DASH/HLS streaming video.",
+                understand: "TinyML identifies 3 separate TV flows vs real-time interactive UDP packets.",
+                decide: "Experience budget partitions bandwidth: 42% for TVs, 38% for Call/Game, 20% for download.",
+                shape: "Deficit Round Robin in CAKE partitions TV chunks so no TV dominates another.",
+                prove: "All 3 TVs play 4K without buffering. Call MOS score remains 4.4/5.0." }
+      },
+      60: {
+        sec: "60 s",
+        title: "Report compares baseline with NetPulse.",
+        desc: "Full automated proof run complete. 60-second summary report generated verifying latency reduction, zero starvation, and policy stability.",
+        bad:  { latency: 245.0, tag: "⚠ Failed", callW: 3, callS: "Freezes", gameW: 3, gameS: "Lags", tvW: 24, tvS: "Buffers", dlW: 70, dlS: "Hogs bandwidth", msg: "Average latency 245ms. Bufferbloat grade F. Call interrupted 14 times. Severe user churn risk." },
+        good: { latency: 6.1,   tag: "✓ Verified", callW: 25, callS: "Smooth", gameW: 20, gameS: "Smooth", tvW: 35, tvS: "Smooth", dlW: 20, dlS: "Keeps moving", conf: "Conf: 99.6%",
+                see: "Total 60-second run: 4 distinct traffic phases sensed with 0 byte payload inspection.",
+                understand: "Classifier Accuracy: TinyML 98.9% vs static port rules 62.4%.",
+                decide: "Experience Budgets protected every flow. Zero starvation recorded.",
+                shape: "Linux tc · CAKE CPU overhead remained < 1.4% on 4-core router.",
+                prove: "Verifier outcome: Bufferbloat Grade A+. Latency reduced by 97.5%. Test passed." }
+      }
+    };
+
+    const stepList = [0, 15, 30, 45, 60];
+    let currentStepIndex = 0;
+    let intentActive = false;
+
+    // Smooth Latency Number Animation
+    let curBadVal = 12.0;
+    let curGoodVal = 5.4;
+
+    function animateValue(elementId, start, end, duration, isDecimal) {
+      const startTime = performance.now();
+      function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1.0);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = start + (end - start) * ease;
+        const el = document.getElementById(elementId);
+        if (el) {
+          el.textContent = isDecimal ? current.toFixed(1) + " ms" : Math.round(current) + " ms";
+        }
+        if (progress < 1.0) requestAnimationFrame(update);
+      }
+      requestAnimationFrame(update);
+    }
+
+    function selectStep(sec, isUserAction = true) {
+      if (isUserAction && autoDemoRunning) stopAutoDemo();
+
+      stepList.forEach(s => {
+        const btn = document.getElementById('b' + s);
+        if (btn) btn.classList.remove('active');
+      });
+      const activeBtn = document.getElementById('b' + sec);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      currentStepIndex = stepList.indexOf(sec);
+      const data = proofRun[sec];
+
+      // Bad Side Update
+      animateValue('val-bad', curBadVal, data.bad.latency, 500, false);
+      curBadVal = data.bad.latency;
+      document.getElementById('tag-bad').textContent = data.bad.tag;
+      document.getElementById('bad-call').style.width = data.bad.callW + '%';
+      document.getElementById('bad-game').style.width = data.bad.gameW + '%';
+      document.getElementById('bad-tv').style.width   = data.bad.tvW   + '%';
+      document.getElementById('bad-dl').style.width   = data.bad.dlW   + '%';
+      document.getElementById('bad-call-stat').textContent = data.bad.callS;
+      document.getElementById('bad-game-stat').textContent = data.bad.gameS;
+      document.getElementById('bad-tv-stat').textContent   = data.bad.tvS;
+      document.getElementById('bad-dl-stat').textContent   = data.bad.dlS;
+      document.getElementById('bad-desc').textContent      = data.bad.msg;
+
+      // Good Side Update (with Intent Lease adjustment if enabled)
+      let goodLatency = intentActive ? Math.max(3.2, (data.good.latency - 1.8)) : data.good.latency;
+      let goodCallW = intentActive ? Math.min(50, data.good.callW + 15) : data.good.callW;
+      let goodDlW = intentActive ? Math.max(15, data.good.dlW - 10) : data.good.dlW;
+
+      animateValue('val-good', curGoodVal, goodLatency, 500, true);
+      curGoodVal = goodLatency;
+
+      document.getElementById('tag-good').textContent = intentActive ? "⚡ Prioritized" : data.good.tag;
+      document.getElementById('good-call').style.width = goodCallW + '%';
+      document.getElementById('good-game').style.width = data.good.gameW + '%';
+      document.getElementById('good-tv').style.width   = data.good.tvW   + '%';
+      document.getElementById('good-dl').style.width   = goodDlW + '%';
+      document.getElementById('good-call-stat').textContent = intentActive ? "⭐ VIP Boost" : data.good.callS;
+      document.getElementById('good-game-stat').textContent = data.good.gameS;
+      document.getElementById('good-tv-stat').textContent   = data.good.tvS;
+      document.getElementById('good-dl-stat').textContent   = data.good.dlS;
+
+      // 5 Steps (Slide 1-to-1)
+      document.getElementById('conf-score').textContent     = data.good.conf;
+      document.getElementById('step-see').textContent        = data.good.see;
+      document.getElementById('step-understand').textContent = data.good.understand;
+      document.getElementById('step-decide').textContent     = intentActive ? "Intent Lease ACTIVE: Temporary VIP priority granted to Work Call without starving download." : data.good.decide;
+      document.getElementById('step-shape').textContent      = data.good.shape;
+      document.getElementById('step-prove').textContent      = data.good.prove;
+
+      // Narrator
+      document.getElementById('stepBadge').textContent = data.sec;
+      document.getElementById('stepNarrative').innerHTML = '<strong>' + data.title + '</strong> ' + data.desc;
+    }
+
+    // INTENT LEASE TOGGLE (FEATURE FROM SLIDE)
+    function toggleIntentLease() {
+      intentActive = !intentActive;
+      const btn = document.getElementById('btnIntent');
+      const txt = document.getElementById('intentText');
+      if (intentActive) {
+        btn.classList.add('active');
+        txt.textContent = "Intent Lease (ACTIVE)";
+      } else {
+        btn.classList.remove('active');
+        txt.textContent = "Intent Lease (Off)";
+      }
+      selectStep(stepList[currentStepIndex], false);
+    }
+
+    // AUTO DEMO MODE
+    let autoDemoRunning = false;
+    let autoTimer = null;
+    let progressTimer = null;
+    let progressStart = 0;
+    const STEP_DURATION = 5000;
+
+    function toggleAutoDemo() {
+      if (autoDemoRunning) stopAutoDemo();
+      else startAutoDemo();
+    }
+
+    function startAutoDemo() {
+      autoDemoRunning = true;
+      document.getElementById('btnAuto').classList.add('running');
+      document.getElementById('autoIcon').textContent = '⏸';
+      document.getElementById('autoText').textContent = 'Pause Demo';
+      document.getElementById('timerBar').style.display = 'block';
+      runAutoStep();
+    }
+
+    function stopAutoDemo() {
+      autoDemoRunning = false;
+      document.getElementById('btnAuto').classList.remove('running');
+      document.getElementById('autoIcon').textContent = '▶';
+      document.getElementById('autoText').textContent = 'Auto Demo';
+      document.getElementById('timerBar').style.display = 'none';
+      if (autoTimer) clearTimeout(autoTimer);
+      if (progressTimer) clearInterval(progressTimer);
+      document.getElementById('timerFill').style.width = '0%';
+    }
+
+    function runAutoStep() {
+      if (!autoDemoRunning) return;
+      selectStep(stepList[currentStepIndex], false);
+
+      progressStart = Date.now();
+      const fillEl = document.getElementById('timerFill');
+      fillEl.style.width = '0%';
+
+      if (progressTimer) clearInterval(progressTimer);
+      progressTimer = setInterval(() => {
+        if (!autoDemoRunning) {
+          clearInterval(progressTimer);
+          return;
+        }
+        const elapsed = Date.now() - progressStart;
+        const pct = Math.min((elapsed / STEP_DURATION) * 100, 100);
+        fillEl.style.width = pct + '%';
+      }, 50);
+
+      autoTimer = setTimeout(() => {
+        if (!autoDemoRunning) return;
+        currentStepIndex = (currentStepIndex + 1) % stepList.length;
+        runAutoStep();
+      }, STEP_DURATION);
+    }
+
+    // Initial load
+    selectStep(0, false);
+  </script>
+</body>
+</html>
